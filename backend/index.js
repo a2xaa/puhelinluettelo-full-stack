@@ -1,114 +1,166 @@
 require('dotenv').config()
 const express = require('express')
-const morgan = require('morgan')
+const app = express()
+const Note   = require('./models/note')
 const Person = require('./models/person')
 
-const app = express()
-
-// Middleware
-app.use(express.static('dist'))
 app.use(express.json())
 
-// Custom morgan token for POST request body
-morgan.token('body', (req) => {
-  return req.method === 'POST' ? JSON.stringify(req.body) : ''
+// ─── NOTES ROUTES ─────────────────────────────────────────────
+
+// GET all notes
+app.get('/api/notes', (req, res, next) => {
+  Note.find({})
+    .then(notes => res.json(notes))
+    .catch(error => next(error))
 })
 
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
-
-// Routes
-
-// Get all persons
-app.get('/api/persons', (request, response) => {
-  Person.find({}).then(persons => {
-    response.json(persons)
-  })
-})
-
-// Get info page
-app.get('/info', (request, response) => {
-  Person.countDocuments({}).then(count => {
-    const info = `
-      <p>Phonebook has info for ${count} people</p>
-      <p>${new Date()}</p>
-    `
-    response.send(info)
-  })
-})
-
-// Get single person
-app.get('/api/persons/:id', (request, response, next) => {
-  Person.findById(request.params.id)
-    .then(person => {
-      if (person) {
-        response.json(person)
+// GET single note by ID
+app.get('/api/notes/:id', (req, res, next) => {
+  Note.findById(req.params.id)
+    .then(note => {
+      if (note) {
+        res.json(note)
       } else {
-        response.status(404).end()
+        res.status(404).end()
       }
     })
     .catch(error => next(error))
 })
 
-// Delete person
+// POST new note
+app.post('/api/notes', (req, res, next) => {
+  const { content, important = false } = req.body
+
+  if (!content) {
+    return res.status(400).json({ error: 'content missing' })
+  }
+
+  const note = new Note({ content, important })
+
+  note.save()
+    .then(savedNote => res.json(savedNote))
+    .catch(error => next(error))
+})
+
+// DELETE note
+app.delete('/api/notes/:id', (req, res, next) => {
+  Note.findByIdAndDelete(req.params.id)
+    .then(() => res.status(204).end())
+    .catch(error => next(error))
+})
+
+// PUT update note
+app.put('/api/notes/:id', (req, res, next) => {
+  const { content, important } = req.body
+
+  Note.findById(req.params.id)
+    .then(note => {
+      if (!note) {
+        return res.status(404).end()
+      }
+
+      note.content   = content
+      note.important = important
+
+      return note.save()
+        .then(updated => res.json(updated))
+    })
+    .catch(error => next(error))
+})
+
+
+// ─── PERSONS ROUTES ────────────────────────────────────────────
+
+// GET all persons
+app.get('/api/persons', (req, res, next) => {
+  Person.find({})
+    .then(persons => res.json(persons))
+    .catch(error => next(error))
+})
+
+// GET single person by ID
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch(error => next(error))
+})
+
+// POST new person
+app.post('/api/persons', (req, res, next) => {
+  const { name, number } = req.body
+
+  if (!name || !number) {
+    return res.status(400).json({ error: 'name or number missing' })
+  }
+
+  const person = new Person({ name, number })
+
+  person.save()
+    .then(savedPerson => res.json(savedPerson))
+    .catch(error => next(error))
+})
+
+// DELETE single person
 app.delete('/api/persons/:id', (request, response, next) => {
   Person.findByIdAndDelete(request.params.id)
-    .then(result => {
+    .then(() => {
+      // 204 No Content: pyyntö onnistui, ei palauteta sisältöä
       response.status(204).end()
     })
     .catch(error => next(error))
 })
 
-// Add new person
-app.post('/api/persons', (request, response, next) => {
-  const body = request.body
 
-  if (!body.name || !body.number) {
-    return response.status(400).json({
-      error: 'name or number missing'
-    })
-  }
+// PUT update single person
+app.put('/api/persons/:id', (req, res, next) => {
+  const { name, number } = req.body
 
-  const person = new Person({
-    name: body.name,
-    number: body.number,
-  })
+  Person.findById(req.params.id)
+    .then(person => {
+      if (!person) {
+        return res.status(404).end()
+      }
 
-  person.save()
-    .then(savedPerson => {
-      response.json(savedPerson)
+      person.name   = name
+      person.number = number
+
+      return person.save()
+        .then(updatedPerson => res.json(updatedPerson))
     })
     .catch(error => next(error))
 })
 
-// Update person
-app.put('/api/persons/:id', (request, response, next) => {
-  const { name, number } = request.body
 
-  Person.findByIdAndUpdate(
-    request.params.id,
-    { name, number },
-    { new: true, runValidators: true, context: 'query' }
-  )
-    .then(updatedPerson => {
-      response.json(updatedPerson)
-    })
-    .catch(error => next(error))
-})
+// ─── MIDDLEWARE: unknown endpoint ──────────────────────────────
 
-// Error handler middleware
-const errorHandler = (error, request, response, next) => {
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+}
+app.use(unknownEndpoint)
+
+
+// ─── MIDDLEWARE: error handler ─────────────────────────────────
+
+const errorHandler = (error, req, res, next) => {
   console.error(error.message)
 
   if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' })
-  } else if (error.name === 'ValidationError') {
-    return response.status(400).json({ error: error.message })
+    return res.status(400).send({ error: 'malformatted id' })
   }
 
   next(error)
 }
-
 app.use(errorHandler)
+
+
+// ─── START SERVER ──────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
