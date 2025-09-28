@@ -20,6 +20,7 @@ const personSchema = new mongoose.Schema({
 const Person = mongoose.model('Person', personSchema)
 
 if (process.argv.length === 3) {
+  // Fetch all persons from database
   console.log('phonebook:')
   Person.find({}).then(result => {
     result.forEach(person => {
@@ -31,13 +32,17 @@ if (process.argv.length === 3) {
   const name = process.argv[3]
   const number = process.argv[4]
 
+  // Create a new person object using the Person model (constructor function)
   const person = new Person({
     name: name,
     number: number,
   })
 
+  // Save the object to database using the save method
+  // The save method returns a promise
   person.save().then(result => {
     console.log(`added ${name} number ${number} to phonebook`)
+    console.log('Saved person:', result)
     mongoose.connection.close()
   })
 } else {
