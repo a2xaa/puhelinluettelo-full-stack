@@ -32,10 +32,6 @@ app.get('/api/notes/:id', (req, res, next) => {
 app.post('/api/notes', (req, res, next) => {
   const { content, important = false } = req.body
 
-  if (!content) {
-    return res.status(400).json({ error: 'content missing' })
-  }
-
   const note = new Note({ content, important })
 
   note.save()
@@ -95,10 +91,6 @@ app.get('/api/persons/:id', (req, res, next) => {
 // POST new person
 app.post('/api/persons', (req, res, next) => {
   const { name, number } = req.body
-
-  if (!name || !number) {
-    return res.status(400).json({ error: 'name or number missing' })
-  }
 
   const person = new Person({ name, number })
 
