@@ -9,6 +9,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [errorMessage, setErrorMessage] = useState(null)
 
   useEffect(() => {
     personService
@@ -35,8 +36,15 @@ const App = () => {
             setNewNumber('')
           })
           .catch(error => {
-            alert(`Information of ${newName} has already been removed from server`)
-            setPersons(persons.filter(p => p.id !== existingPerson.id))
+            if (error.response && error.response.data && error.response.data.error) {
+              setErrorMessage(error.response.data.error)
+              setTimeout(() => {
+                setErrorMessage(null)
+              }, 5000)
+            } else {
+              alert(`Information of ${newName} has already been removed from server`)
+              setPersons(persons.filter(p => p.id !== existingPerson.id))
+            }
           })
       }
     } else {
@@ -51,6 +59,12 @@ const App = () => {
           setPersons(persons.concat(returnedPerson))
           setNewName('')
           setNewNumber('')
+        })
+        .catch(error => {
+          setErrorMessage(error.response.data.error)
+          setTimeout(() => {
+            setErrorMessage(null)
+          }, 5000)
         })
     }
   }
@@ -90,7 +104,9 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
-      
+
+      {errorMessage && <div style={{color: 'red', background: 'lightgrey', fontSize: 20, borderStyle: 'solid', borderRadius: 5, padding: 10, marginBottom: 10}}>{errorMessage}</div>}
+
       <Filter filter={filter} handleFilterChange={handleFilterChange} />
       
       <h3>Add a new</h3>
