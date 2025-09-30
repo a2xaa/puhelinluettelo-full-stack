@@ -4,6 +4,7 @@ const app = express()
 const Note   = require('./models/note')
 const Person = require('./models/person')
 
+app.use(express.static('dist'))
 app.use(express.json())
 
 // ─── NOTES ROUTES ─────────────────────────────────────────────
