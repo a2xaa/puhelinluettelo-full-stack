@@ -138,8 +138,7 @@ const errorHandler = (error, request, response, next) => {
   }
 
   if (error.name === 'ValidationError') {
-    const messages = Object.values(error.errors).map(e => e.message);
-    return response.status(400).json({ errors: messages });
+    return response.status(400).json({ error: error.message })
   }
 
   next(error);
