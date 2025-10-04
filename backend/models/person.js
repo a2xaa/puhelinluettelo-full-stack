@@ -13,7 +13,7 @@ const personSchema = new mongoose.Schema({
   name: {
     type: String,
     minlength: 3,
-    required: true
+    required: true,
   },
   number: {
     type: String,
@@ -22,10 +22,10 @@ const personSchema = new mongoose.Schema({
     validate: {
       validator: function (v) {
         // Hyväksyy 2-3 numeroa, väliviivan ja vähintään yhden numeron lopussa
-        return /^\d{2,3}-\d+$/.test(v);
+        return /^\d{2,3}-\d+$/.test(v)
       },
-      message: props => `${props.value} is not a valid phone number!`
-    }
+      message: props => `${props.value} is not a valid phone number!`,
+    },
   },
 })
 
@@ -34,7 +34,7 @@ personSchema.set('toJSON', {
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
-  }
+  },
 })
 
 module.exports = mongoose.model('Person', personSchema)
