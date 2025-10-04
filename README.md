@@ -1,1 +1,1 @@
-Sovellus Internettiin, REST palvelin.
+3.22: lint-konfiguraatio
